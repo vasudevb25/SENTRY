@@ -1,0 +1,35 @@
+# dependencies (regenerate with npm install)
+node_modules/
+chaincode/logstore/node_modules/
+
+# Hyperledger Fabric — large, not your code, everyone downloads their own copy
+fabric-samples/
+
+# secrets — never commit these
+core/wallet/
+core/keystore/
+scripts/set-env.sh
+
+# generated runtime data
+core/logs.db
+core/logs_broken_demo.db
+core/logs_debug_backup.db
+*.db
+
+# WSL/Windows download artifacts
+*Zone.Identifier
+
+# python
+collector/__pycache__/
+collector/venv/
+collector/private.pem
+collector/public.pem
+collector/evidence_fallback.jsonl
+collector/.venv/
+
+# downloaded installer
+get-docker.sh
+
+# sentry runtime state / bootstrap logs / archived evidence stores
+.sentry/
+core/logs_archive_*.db

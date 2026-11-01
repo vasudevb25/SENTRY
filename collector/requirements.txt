@@ -1,0 +1,4 @@
+# Removed: pkcs11 (was unused dead code — no PKCS#11/SoftHSM2 token is needed;
+# signing is done in software against the local RSA key, see collector.py)
+cryptography>=42.0.0
+kafka-python>=2.0.2

@@ -1,0 +1,14 @@
+# Copy this file to set-env.sh, fill in a real passphrase, then:
+#   source scripts/set-env.sh
+# ...before running keygen.js, agent.js, or verify.js in the same shell.
+# (Not committed as .env because config.js reads plain process.env — no
+# extra dotenv dependency needed.)
+
+export HSM_PASSPHRASE="choose-a-strong-passphrase-and-do-not-lose-it"
+
+# Optional overrides — defaults in core/config.js already match a standard
+# fabric-samples/test-network layout, only uncomment if yours differs:
+# export FABRIC_NETWORK_PATH="/path/to/this/project/fabric-samples"
+# export FABRIC_IDENTITY="appUser"
+# export FABRIC_CHANNEL="mychannel"
+# export FABRIC_CHAINCODE="logstore"

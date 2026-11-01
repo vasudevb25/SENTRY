@@ -1,0 +1,20 @@
+{
+  "name": "sentry-tamper-evident",
+  "version": "1.0.0",
+  "description": "SENTRY — tamper-evident log integrity: hash chain, Ed25519, AES-256-GCM, Merkle batching, Hyperledger Fabric anchoring. A tool by SedentryRisk.",
+  "author": "SedentryRisk",
+  "license": "ISC",
+  "private": true,
+  "bin": {
+    "sentry": "cli/sentry.js"
+  },
+  "scripts": {
+    "start": "node cli/sentry.js start",
+    "verify": "node cli/sentry.js verify",
+    "status": "node cli/sentry.js status",
+    "stop": "node cli/sentry.js stop"
+  },
+  "engines": {
+    "node": ">=16"
+  }
+}

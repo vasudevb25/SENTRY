@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# SENTRY launcher — a tool by SedentryRisk.  Usage: ./sentry [command] [options]
+# (works from any directory; ./sentry --help for commands)
+set -e
+DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
+
+if ! command -v node >/dev/null 2>&1; then
+    # nvm-installed node isn't on PATH in non-interactive shells
+    [ -s "$HOME/.nvm/nvm.sh" ] && . "$HOME/.nvm/nvm.sh" >/dev/null 2>&1 || true
+fi
+if ! command -v node >/dev/null 2>&1; then
+    echo "✖ Node.js is not installed. Install Node 18+ (see README, section 1)." >&2
+    exit 1
+fi
+
+exec node "$DIR/cli/sentry.js" "$@"

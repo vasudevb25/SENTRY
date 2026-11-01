@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SENTRY Command Center</title>
+<meta name="description" content="Real-time tamper-evident log integrity dashboard — a tool by SedentryRisk">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 2 4 7v8c0 7.5 5 13 12 15 7-2 12-7.5 12-15V7z' fill='%2300ff9c'/%3E%3C/svg%3E">
+</head>
+<body>
+<div class="bg-grid" aria-hidden="true"></div>
+<div class="scanlines" aria-hidden="true"></div>
+
+<header class="topbar">
+  <div class="brand">
+    <svg class="brand-shield" viewBox="0 0 32 32" aria-hidden="true">
+      <path d="M16 2 4 7v8c0 7.5 5 13 12 15 7-2 12-7.5 12-15V7z" fill="none" stroke="currentColor" stroke-width="2"/>
+      <path d="m10.5 16 4 4 7-8" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <div>
+      <div class="brand-name">SENTRY</div>
+      <div class="brand-sub">Tamper-Evident Log Integrity <span class="by">// a tool by <b>SedentryRisk</b></span></div>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <div class="pill" id="pill-agent"><span class="dot"></span><span>AGENT</span><b id="agent-state">—</b></div>
+    <div class="pill" id="pill-link"><span class="dot"></span><span>LINK</span><b id="link-state">CONNECTING</b></div>
+    <div class="pill mono"><span>UPTIME</span><b id="uptime">00:00:00</b></div>
+    <div class="clock mono" id="clock">--:--:--</div>
+  </div>
+</header>
+
+<div class="alert" id="alert" hidden>
+  <div class="alert-icon">⚠</div>
+  <div class="alert-body">
+    <div class="alert-title" id="alert-title">TAMPERING DETECTED</div>
+    <div class="alert-text" id="alert-text"></div>
+  </div>
+</div>
+
+<main class="grid">
+
+  <!-- KPIs -->
+  <section class="kpis span-12">
+    <div class="kpi"><div class="kpi-label">Logs secured</div><div class="kpi-value" id="k-logs">0</div><div class="kpi-foot" id="k-logs-foot">hash-chained · signed · encrypted</div></div>
+    <div class="kpi"><div class="kpi-label">Throughput</div><div class="kpi-value" id="k-rate">0</div><div class="kpi-foot">logs / minute</div></div>
+    <div class="kpi"><div class="kpi-label">Batches sealed</div><div class="kpi-value" id="k-roots">0</div><div class="kpi-foot" id="k-roots-foot">merkle roots</div></div>
+    <div class="kpi"><div class="kpi-label">Anchored on-chain</div><div class="kpi-value accent" id="k-anchored">0</div><div class="kpi-foot" id="k-pending">0 pending</div></div>
+    <div class="kpi"><div class="kpi-label">Ledger height</div><div class="kpi-value" id="k-height">—</div><div class="kpi-foot" id="k-channel">channel</div></div>
+    <div class="kpi kpi-status" id="kpi-integrity"><div class="kpi-label">Integrity</div><div class="kpi-value" id="k-integrity">CHECKING</div><div class="kpi-foot" id="k-integrity-foot">—</div></div>
+  </section>
+
+  <!-- PIPELINE -->
+  <section class="panel span-12" id="pipeline-panel">
+    <div class="panel-head"><h2><span class="idx">01</span> Evidence Pipeline</h2><span class="hint">every log line travels left → right in real time</span></div>
+    <div class="pipeline" id="pipeline">
+      <div class="pipe-track" aria-hidden="true"><div class="pipe-line"></div></div>
+      <div class="stage" data-stage="0">
+        <div class="stage-icon"><svg viewBox="0 0 24 24"><path d="M3 5h18M3 12h18M3 19h12"/></svg></div>
+        <div class="stage-name">CAPTURE</div><div class="stage-sub" id="st-capture">journald</div><div class="stage-val" id="sv-capture">0</div>
+      </div>
+      <div class="stage" data-stage="1">
+        <div class="stage-icon"><svg viewBox="0 0 24 24"><path d="M9 3 7 21M17 3l-2 18M4 8h17M3 16h17"/></svg></div>
+        <div class="stage-name">HASH CHAIN</div><div class="stage-sub">SHA-256(prev ‖ log)</div><div class="stage-val mono" id="sv-hash">—</div>
+      </div>
+      <div class="stage" data-stage="2">
+        <div class="stage-icon"><svg viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="m11 12 9-9M17 6l3 3M14 9l2 2"/></svg></div>
+        <div class="stage-name">SIGN</div><div class="stage-sub">Ed25519 · software HSM</div><div class="stage-val mono" id="sv-sig">—</div>
+      </div>
+      <div class="stage" data-stage="3">
+        <div class="stage-icon"><svg viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></div>
+        <div class="stage-name">ENCRYPT</div><div class="stage-sub">AES-256-GCM at rest</div><div class="stage-val" id="sv-enc">sqlite</div>
+      </div>
+      <div class="stage" data-stage="4">
+        <div class="stage-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="4" r="2"/><circle cx="6" cy="12" r="2"/><circle cx="18" cy="12" r="2"/><circle cx="3" cy="20" r="2"/><circle cx="9" cy="20" r="2"/><circle cx="15" cy="20" r="2"/><circle cx="21" cy="20" r="2"/><path d="M12 6 6 10M12 6l6 4M6 14l-3 4M6 14l3 4M18 14l-3 4M18 14l3 4"/></svg></div>
+        <div class="stage-name">MERKLE BATCH</div><div class="stage-sub" id="st-batch">batch of 20 / 5s</div>
+        <div class="batch-meter"><div class="batch-fill" id="batch-fill"></div></div>
+      </div>
+      <div class="stage" data-stage="5">
+        <div class="stage-icon"><svg viewBox="0 0 24 24"><rect x="2" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/><rect x="16" y="9" width="6" height="6" rx="1"/><path d="M8 12h1M15 12h1"/></svg></div>
+        <div class="stage-name">FABRIC LEDGER</div><div class="stage-sub">Hyperledger · immutable</div><div class="stage-val" id="sv-ledger">block —</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HASH CHAIN -->
+  <section class="panel span-8 fill">
+    <div class="panel-head"><h2><span class="idx">02</span> Live Hash Chain</h2><span class="hint">each block commits to the previous one — a broken link means evidence was altered</span></div>
+    <div class="chain" id="chain"><div class="empty">Waiting for the first log entry…</div></div>
+    <div class="formulas">
+      <div class="formula"><div class="f-k">link</div><div class="f-eq"><em>hash</em><sub>n</sub> = SHA-256(<em>hash</em><sub>n-1</sub> ‖ log<sub>n</sub>)</div><div class="f-d">change one entry → every later link breaks</div></div>
+      <div class="formula"><div class="f-k">seal</div><div class="f-eq"><i>sig</i><sub>n</sub> = Ed25519<sub>HSM</sub>(<em>hash</em><sub>n</sub>)</div><div class="f-d">can't be recomputed without the private key</div></div>
+      <div class="formula"><div class="f-k">anchor</div><div class="f-eq">root = Merkle(<i>sig</i><sub>1…k</sub>) → Fabric</div><div class="f-d">immutable off-host proof of every batch</div></div>
+    </div>
+  </section>
+
+  <!-- INTEGRITY -->
+  <section class="panel span-4 integrity" id="integrity-panel">
+    <div class="panel-head"><h2><span class="idx">03</span> Integrity Monitor</h2><span class="hint" id="int-checked">—</span></div>
+    <div class="shield-wrap">
+      <svg class="shield" id="shield" viewBox="0 0 64 64" aria-hidden="true">
+        <path d="M32 4 8 13v16c0 15 10 26 24 31 14-5 24-16 24-31V13z" class="shield-body"/>
+        <path d="m21 32 8 8 14-16" class="shield-mark ok"/>
+        <path d="M32 20v16M32 44v1" class="shield-mark bad"/>
+      </svg>
+      <div>
+        <div class="shield-status" id="shield-status">CHECKING</div>
+        <div class="shield-sub" id="shield-sub">continuous verification every 5s</div>
+      </div>
+    </div>
+    <ul class="checks" id="checks">
+      <li data-check="HASH_MISMATCH"><span class="ck-icon">…</span><span class="ck-name">Hash-chain linkage</span><span class="ck-val">—</span></li>
+      <li data-check="BAD_SIGNATURE"><span class="ck-icon">…</span><span class="ck-name">Ed25519 signatures</span><span class="ck-val">—</span></li>
+      <li data-check="CIPHERTEXT_TAMPERED"><span class="ck-icon">…</span><span class="ck-name">AES-GCM authentication</span><span class="ck-val">—</span></li>
+      <li data-check="LOCAL_ROOT_MISMATCH"><span class="ck-icon">…</span><span class="ck-name">Merkle batch roots</span><span class="ck-val">—</span></li>
+      <li data-check="ONCHAIN"><span class="ck-icon">…</span><span class="ck-name">Fabric ledger match</span><span class="ck-val">—</span></li>
+    </ul>
+    <button class="btn btn-primary" id="btn-verify"><span>⟳</span> Run full verification</button>
+    <div class="problems" id="problems"></div>
+  </section>
+
+  <!-- FEED -->
+  <section class="panel span-6">
+    <div class="panel-head"><h2><span class="idx">04</span> Evidence Stream</h2><span class="hint">decrypted on the fly for this console only</span></div>
+    <div class="table-wrap">
+      <table class="feed">
+        <thead><tr><th>#</th><th>time</th><th>source</th><th>event</th><th>hash</th><th>state</th></tr></thead>
+        <tbody id="feed"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- LEDGER -->
+  <section class="panel span-3">
+    <div class="panel-head"><h2><span class="idx">05</span> Sealed Batches</h2><span class="hint" id="ledger-hint">merkle roots → Fabric</span></div>
+    <div class="blocks" id="blocks"><div class="empty">No batches sealed yet.</div></div>
+  </section>
+
+  <!-- ATTACK LAB -->
+  <section class="panel span-3 attack">
+    <div class="panel-head"><h2><span class="idx">06</span> Attack Lab</h2><span class="hint">simulate an intruder</span></div>
+    <button class="btn btn-ghost" id="btn-generate"><span>＋</span> Generate 5 log events</button>
+    <div class="attack-list">
+      <button class="atk" data-attack="modify">
+        <span class="atk-title">Modify a stored log</span>
+        <span class="atk-desc">Edit encrypted bytes in the DB → caught by AES-GCM</span>
+      </button>
+      <button class="atk" data-attack="forge">
+        <span class="atk-title">Insider forgery</span>
+        <span class="atk-desc">Rewrite a log + recompute its hash → caught by Ed25519 + chain</span>
+      </button>
+      <button class="atk" data-attack="delete">
+        <span class="atk-title">Delete evidence</span>
+        <span class="atk-desc">Remove a sealed entry → caught by chain + Fabric ledger</span>
+      </button>
+    </div>
+    <div class="attack-log" id="attack-log"></div>
+  </section>
+
+  <!-- FABRIC -->
+  <section class="panel span-5">
+    <div class="panel-head"><h2><span class="idx">07</span> Blockchain Network</h2><span class="hint" id="fabric-hint">Hyperledger Fabric test-network</span></div>
+    <svg class="topo" id="topo" viewBox="0 0 520 290" role="img" aria-label="Hyperledger Fabric network topology"></svg>
+    <div class="fabric-facts">
+      <div><span>channel</span><b id="f-channel">—</b></div>
+      <div><span>chaincode</span><b id="f-cc">—</b></div>
+      <div><span>height</span><b id="f-height">—</b></div>
+      <div><span>assets</span><b id="f-assets">—</b></div>
+      <div class="wide"><span>head block</span><b class="mono" id="f-hash">—</b></div>
+    </div>
+  </section>
+
+  <!-- THROUGHPUT -->
+  <section class="panel span-7 fill">
+    <div class="panel-head"><h2><span class="idx">08</span> Ingest Rate</h2><span class="hint">logs captured per second · last 2 minutes</span></div>
+    <div class="chart-wrap" id="chart-wrap">
+      <canvas id="chart"></canvas>
+      <div class="tooltip" id="tooltip" hidden></div>
+    </div>
+    <div class="sources" id="sources"></div>
+  </section>
+
+  <!-- CONSOLE -->
+  <section class="panel span-12">
+    <div class="panel-head"><h2><span class="idx">09</span> Agent Console</h2><span class="hint">live stdout from the capture agent</span></div>
+    <div class="console mono" id="console"></div>
+  </section>
+
+</main>
+
+<footer class="foot">SENTRY <span id="version"></span> · hash chain · Ed25519 · AES-256-GCM · Merkle · Hyperledger Fabric · <b>a tool by SedentryRisk</b></footer>
+
+<div class="toast" id="toast" hidden></div>
+<script src="app.js"></script>
+</body>
+</html>
